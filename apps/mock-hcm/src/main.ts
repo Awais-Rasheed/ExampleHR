@@ -3,6 +3,7 @@ import { MockHcmModule } from './mock-hcm.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(MockHcmModule);
+  app.enableCors();
   await app.listen(3001);
   console.log('Mock HCM Server running on http://localhost:3001');
 }
