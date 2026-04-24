@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExampleHR Time-Off Service Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.danger {
+            background-color: #f44336;
+        }
+        button.danger:hover {
+            background-color: #da190b;
+        }
+        .output {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        label {
+            display: inline-block;
+            width: 150px;
+            font-weight: bold;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 5px 0;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏢 ExampleHR Time-Off Service Tester</h1>
+
+    <div class="section">
+        <h2>Service Status</h2>
+        <button onclick="checkServices()">Check Services</button>
+        <div id="serviceStatus"></div>
+    </div>
+
+    <div class="section">
+        <h2>1. Sync Balance from HCM</h2>
+        <div class="input-group">
+            <label>Employee ID:</label>
+            <input type="text" id="syncEmployeeId" value="EMP001">
+        </div>
+        <div class="input-group">
+            <label>Location ID:</label>
+            <input type="text" id="syncLocationId" value="LOC001">
+        </div>
+        <button onclick="syncBalance()">Sync Balance</button>
+        <div id="syncOutput" class="output"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. View Balance</h2>
+        <div class="input-group">
+            <label>Employee ID:</label>
+            <input type="text" id="viewEmployeeId" value="EMP001">
+        </div>
+        <div class="input-group">
+            <label>Location ID:</label>
+            <input type="text" id="viewLocationId" value="LOC001">
+        </div>
+        <button onclick="viewBalance()">View Balance</button>
+        <button onclick="viewHcmBalance()">View HCM Balance</button>
+        <div id="balanceOutput" class="output"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. Create Time-Off Request</h2>
+        <div class="input-group">
+            <label>Employee ID:</label>
+            <input type="text" id="reqEmployeeId" value="EMP001">
+        </div>
+        <div class="input-group">
+            <label>Location ID:</label>
+            <input type="text" id="reqLocationId" value="LOC001">
+        </div>
+        <div class="input-group">
+            <label>Requested Days:</label>
+            <input type="number" id="reqDays" value="5" step="0.5">
+        </div>
+        <button onclick="createRequest()">Create Request</button>
+        <div id="requestOutput" class="output"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. Manage Request</h2>
+        <div class="input-group">
+            <label>Request ID:</label>
+            <input type="text" id="manageRequestId" placeholder="Enter request ID">
+        </div>
+        <button onclick="viewRequest()">View Request</button>
+        <button onclick="approveRequest()">Approve</button>
+        <button onclick="rejectRequest()" class="danger">Reject</button>
+        <button onclick="cancelRequest()" class="danger">Cancel</button>
+        <div id="manageOutput" class="output"></div>
+    </div>
+
+    <div class="section">
+        <h2>5. Batch Operations</h2>
+        <button onclick="batchSync()">Batch Sync All Balances</button>
+        <button onclick="resetHcm()" class="danger">Reset HCM</button>
+        <div id="batchOutput" class="output"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        const HCM_BASE = 'http://localhost:3001';
+
+        async function checkServices() {
+            const output = document.getElementById('serviceStatus');
+            output.innerHTML = 'Checking services...';
+
+            let status = '';
+
+            try {
+                const mainRes = await fetch(`${API_BASE}/time-off/balances?employeeId=EMP001&locationId=LOC001`);
+                status += '<div class="status success">✓ Main Service (port 3000): Running</div>';
+            } catch (e) {
+                status += '<div class="status error">✗ Main Service (port 3000): Not running</div>';
+            }
+
+            try {
+                const hcmRes = await fetch(`${HCM_BASE}/hcm/balances?employeeId=EMP001&locationId=LOC001`);
+                status += '<div class="status success">✓ Mock HCM (port 3001): Running</div>';
+            } catch (e) {
+                status += '<div class="status error">✗ Mock HCM (port 3001): Not running</div>';
+            }
+
+            output.innerHTML = status;
+        }
+
+        async function syncBalance() {
+            const employeeId = document.getElementById('syncEmployeeId').value;
+            const locationId = document.getElementById('syncLocationId').value;
+            const output = document.getElementById('syncOutput');
+
+            try {
+                const res = await fetch(`${API_BASE}/time-off/balances/sync/realtime`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employeeId, locationId })
+                });
+                const data = await res.json();
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (e) {
+                output.textContent = 'Error: ' + e.message;
+            }
+        }
+
+        async function viewBalance() {
+            const employeeId = document.getElementById('viewEmployeeId').value;
+            const locationId = document.getElementById('viewLocationId').value;
+            const output = document.getElementById('balanceOutput');
+
+            try {
+                const res = await fetch(`${API_BASE}/time-off/balances?employeeId=${employeeId}&locationId=${locationId}`);
+                const data = await res.json();
+                output.textContent = 'Local Balance:\n' + JSON.stringify(data, null, 2);
+            } catch (e) {
+                output.textContent = 'Error: ' + e.message;
+            }
+        }
+
+        async function viewHcmBalance() {
+            const employeeId = document.getElementById('viewEmployeeId').value;
+            const locationId = document.getElementById('viewLocationId').value;
+            const output = document.getElementById('balanceOutput');
+
+            try {
+                const res = await fetch(`${HCM_BASE}/hcm/balances?employeeId=${employeeId}&locationId=${locationId}`);
+                const data = await res.json();
+                output.textContent = 'HCM Balance:\n' + JSON.stringify(data, null, 2);
+            } catch (e) {
+                output.textContent = 'Error: ' + e.message;
+            }
+        }
+
+        async function createRequest() {
+            const employeeId = document.getElementById('reqEmployeeId').value;
+            const locationId = document.getElementById('reqLocationId').value;
+            const requestedDays = parseFloat(document.getElementById('reqDays').value);
+            const output = document.getElementById('requestOutput');
+
+            try {
+                const res = await fetch(`${API_BASE}/time-off/requests`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employeeId, locationId, requestedDays })
+                });
+                const data = await res.json();
+                output.textContent = JSON.stringify(data, null, 2);
+
+                // Auto-fill the request ID
+                if (data.id) {
+                    document.getElementById('manageRequestId').value = data.id;
+                }
+            } catch (e) {
+                output.textContent = 'Error: ' + e.message;
+            }
+        }
+
+        async function viewRequest() {
+            const requestId = document.getElementById('manageRequestId').value;
+            const output = document.getElementById('manageOutput');
+
+            if (!requestId) {
+                output.textContent = 'Please enter a request ID';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/time-off/requests/${requestId}`);
+                const data = await res.json();
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (e) {
+                output.textContent = 'Error: ' + e.message;
+            }
+        }
+
+        async function approveRequest() {
+            const requestId = document.getElementById('manageRequestId').value;
+            const output = document.getElementById('manageOutput');
+
+            if (!requestId) {
+                output.textContent = 'Please enter a request ID';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/time-off/requests/${requestId}/approve`, {
+                    method: 'PATCH'
+                });
+                const data = await res.json();
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (e) {
+                output.textContent = 'Error: ' + e.message;
+            }
+        }
+
+        async function rejectRequest() {
+            const requestId = document.getElementById('manageRequestId').value;
+            const output = document.getElementById('manageOutput');
+
+            if (!requestId) {
+                output.textContent = 'Please enter a request ID';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/time-off/requests/${requestId}/reject`, {
+                    method: 'PATCH'
+                });
+                const data = await res.json();
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (e) {
+                output.textContent = 'Error: ' + e.message;
+            }
+        }
+
+        async function cancelRequest() {
+            const requestId = document.getElementById('manageRequestId').value;
+            const output = document.getElementById('manageOutput');
+
+            if (!requestId) {
+                output.textContent = 'Please enter a request ID';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/time-off/requests/${requestId}/cancel`, {
+                    method: 'PATCH'
+                });
+                const data = await res.json();
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (e) {
+                output.textContent = 'Error: ' + e.message;
+            }
+        }
+
+        async function batchSync() {
+            const output = document.getElementById('batchOutput');
+
+            try {
+                // Get all balances from HCM
+                const hcmRes = await fetch(`${HCM_BASE}/hcm/balances/batch`, {
+                    method: 'POST'
+                });
+                const balances = await hcmRes.json();
+
+                // Sync to main service
+                const syncRes = await fetch(`${API_BASE}/time-off/balances/sync/batch`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(balances)
+                });
+                const data = await syncRes.json();
+                output.textContent = 'Synced ' + balances.length + ' balances:\n' + JSON.stringify(data, null, 2);
+            } catch (e) {
+                output.textContent = 'Error: ' + e.message;
+            }
+        }
+
+        async function resetHcm() {
+            const output = document.getElementById('batchOutput');
+
+            try {
+                const res = await fetch(`${HCM_BASE}/hcm/reset`, {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (e) {
+                output.textContent = 'Error: ' + e.message;
+            }
+        }
+
+        // Check services on load
+        window.onload = checkServices;
+    </script>
+</body>
+</html>
